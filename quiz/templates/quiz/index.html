@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Quiz - Интеллектуальные тесты</title>
+    <style>
+        /* Анимированный фоновый градиент */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+            color: #fff;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Стеклянная карточка */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 10px; font-weight: 800; letter-spacing: -1px; }
+        p { opacity: 0.9; margin-bottom: 30px; }
+
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: none;
+            background: #23a6d5;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover { background: #1b8db5; transform: translateY(-2px); }
+
+        .teacher-link {
+            display: inline-block;
+            margin-top: 25px;
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+        .teacher-link:hover { color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+    </style>
+</head>
+<body>
+    <div class="glass-card">
+        <h1>AI Quiz</h1>
+        <p>Интеллектуальная платформа</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <input type="text" name="player_name" placeholder="Ваше имя" required>
+            <input type="text" name="join_code" placeholder="Код доступа" required maxlength="6">
+            <button type="submit">Войти в игру</button>
+        </form>
+
+        <a href="/create/" class="teacher-link">Кабинет преподавателя →</a>
+    </div>
+</body>
+</html>

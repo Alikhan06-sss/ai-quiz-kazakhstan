@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест готов! - AI Quiz</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; text-align: center; padding-top: 50px; }
+        .card { background: #1e293b; max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .code-display { font-size: 48px; font-weight: bold; color: #38bdf8; margin: 20px 0; letter-spacing: 5px; }
+        #qrcode { background: white; padding: 15px; display: inline-block; border-radius: 10px; margin-top: 20px; }
+        .btn { display: inline-block; margin-top: 30px; padding: 12px 25px; background: #38bdf8; color: #0f172a; text-decoration: none; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Тест успешно создан! ✨</h2>
+        <p>Покажите этот код студентам или дайте отсканировать QR-код:</p>
+
+        <div class="code-display">{{ quiz.join_code }}</div>
+
+        <div id="qrcode"></div>
+
+        <br>
+        <a href="/" class="btn">Вернуться на главную</a>
+    </div>
+
+    <script>
+        // Генерируем ссылку: берем текущий домен и добавляем путь.
+        // В будущем, когда зальем на Render, ссылка будет вести прямо на сайт.
+        const joinUrl = window.location.origin + "/";
+
+        new QRCode(document.getElementById("qrcode"), {
+            text: joinUrl,
+            width: 200,
+            height: 200,
+            colorDark : "#0f172a",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ quiz.title }} - AI Quiz</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; color: #fff; }
+        .quiz-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
+        h2 { color: #38bdf8; margin-bottom: 25px; }
+        .choice-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; font-size: 16px; cursor: pointer; transition: 0.3s; text-align: left; }
+        .choice-btn:hover:not(:disabled) { border-color: #38bdf8; }
+        .correct { background: #059669 !important; border-color: #10b981 !important; }
+        .wrong { background: #dc2626 !important; border-color: #ef4444 !important; }
+        .leaderboard-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        .leaderboard-table td, .leaderboard-table th { padding: 10px; border-bottom: 1px solid #334155; }
+        .top-1 { color: #fbbf24; font-weight: bold; } /* Золото */
+    </style>
+</head>
+<body>
+
+<div class="quiz-card" id="quiz-box">
+    <div id="progress" style="margin-bottom: 10px; opacity: 0.6;"></div>
+    <h2 id="question-text">Загрузка...</h2>
+    <div id="choices-container"></div>
+</div>
+
+<script>
+    const questions = [
+        {% for q in questions %}
+        {
+            text: "{{ q.text|escapejs }}",
+            choices: [
+                {% for c in q.choices.all %}
+                { text: "{{ c.text|escapejs }}", is_correct: {{ c.is_correct|yesno:"true,false" }} },
+                {% endfor %}
+            ]
+        },
+        {% endfor %}
+    ];
+
+    let currentStep = 0;
+    let score = 0;
+
+    function loadQuestion() {
+        const q = questions[currentStep];
+        document.getElementById('progress').innerText = `Вопрос ${currentStep + 1} из ${questions.length}`;
+        document.getElementById('question-text').innerText = q.text;
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+
+        q.choices.forEach((choice, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = choice.text;
+            btn.onclick = () => checkAnswer(btn, choice.is_correct);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(btn, isCorrect) {
+        const allBtns = document.querySelectorAll('.choice-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        if (isCorrect) {
+            btn.classList.add('correct');
+            score++;
+        } else {
+            btn.classList.add('wrong');
+            allBtns.forEach((b, idx) => {
+                if (questions[currentStep].choices[idx].is_correct) b.classList.add('correct');
+            });
+        }
+
+        // АВТО-ПЕРЕХОД через 1.5 секунды
+        setTimeout(() => {
+            currentStep++;
+            if (currentStep < questions.length) {
+                loadQuestion();
+            } else {
+                finishQuiz();
+            }
+        }, 1500);
+    }
+
+    function finishQuiz() {
+        // Отправляем результат на сервер через специальный URL
+        fetch(`/save_result/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `score=${score}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            showLeaderboard(data.leaders);
+        });
+    }
+
+    function showLeaderboard(leaders) {
+        const box = document.getElementById('quiz-box');
+        let rows = leaders.map((l, i) => `
+            <tr class="${i === 0 ? 'top-1' : ''}">
+                <td>${i + 1}</td>
+                <td>${l.name}</td>
+                <td>${l.score}</td>
+            </tr>
+        `).join('');
+
+        box.innerHTML = `
+            <h2>Тест окончен!</h2>
+            <p style="font-size: 1.2rem;">Твой результат: ${score} из ${questions.length}</p>
+            <hr style="border: 1px solid #334155; margin: 20px 0;">
+            <h3>🏆 Список лидеров</h3>
+            <table class="leaderboard-table">
+                <thead><tr><th>#</th><th>Имя</th><th>Баллы</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <button class="choice-btn" style="text-align:center; margin-top:20px" onclick="window.location.href='/'">Выйти</button>
+        `;
+    }
+
+    if (questions.length > 0) loadQuestion();
+</script>
+</body>
+</html>

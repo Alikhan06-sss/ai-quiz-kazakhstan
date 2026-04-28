@@ -6,13 +6,38 @@
     <style>
         body { font-family: 'Inter', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; color: #fff; }
         .quiz-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
-        .leaderboard-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-        .leaderboard-table td, .leaderboard-table th { padding: 10px; border-bottom: 1px solid #334155; }
-        .top-1 { color: #fbbf24; font-weight: bold; }
-        .choice-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; cursor: pointer; text-decoration: none;}
-        .choice-btn:hover { border-color: #38bdf8; }
+        .choice-btn { display: block; padding: 15px; border-radius: 12px; border: 2px solid #334155; color: white; cursor: pointer; text-decoration: none; font-weight: bold; transition: 0.3s; }
+        .choice-btn:hover { opacity: 0.8; transform: translateY(-2px); }
         .pulse { display: inline-block; width: 10px; height: 10px; background: #10b981; border-radius: 50%; margin-right: 10px; animation: blink 1.5s infinite; }
         @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.3;} 100% {opacity: 1;} }
+
+        /* Новый дизайн лидерборда для анимации */
+        .leaderboard-container { width: 100%; margin-top: 20px; text-align: left; }
+        .leader-header { display: flex; padding: 10px 15px; border-bottom: 2px solid #334155; font-weight: bold; color: #94a3b8; }
+
+        #live-board { position: relative; width: 100%; margin-top: 10px; transition: height 0.3s ease; }
+
+        .leader-row {
+            display: flex;
+            padding: 15px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            position: absolute; /* Делает возможным скольжение */
+            width: 100%;
+            box-sizing: border-box;
+            /* МАГИЯ АНИМАЦИИ: плавное перемещение за 0.5 секунд */
+            transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
+            align-items: center;
+        }
+
+        .col-rank { width: 15%; text-align: center; font-size: 1.2rem; font-weight: bold; }
+        .col-name { width: 60%; font-size: 1.1rem; }
+        .col-score { width: 25%; text-align: right; font-weight: bold; font-size: 1.2rem; color: #38bdf8; }
+
+        /* Золотой стиль для лидера */
+        .top-1 { background: rgba(251, 191, 36, 0.1); border-color: #fbbf24; }
+        .top-1 .col-rank, .top-1 .col-name, .top-1 .col-score { color: #fbbf24; }
     </style>
 </head>
 <body>
@@ -20,32 +45,74 @@
         <h2><span class="pulse"></span> LIVE: {{ quiz.title }}</h2>
         <p style="font-size: 1.2rem; color: #38bdf8;">Код для входа: <b>{{ quiz.join_code }}</b></p>
 
-        <table class="leaderboard-table">
-            <thead><tr><th>#</th><th>Ученик</th><th>Баллы</th></tr></thead>
-            <tbody id="live-board">
-                </tbody>
-        </table>
+        <div class="leaderboard-container">
+            <div class="leader-header">
+                <div style="width: 15%; text-align: center;">#</div>
+                <div style="width: 60%;">Ученик</div>
+                <div style="width: 25%; text-align: right;">Баллы</div>
+            </div>
 
-        <a href="/" class="choice-btn" style="text-align:center; margin-top:30px">На главную</a>
+            <div id="live-board">
+                </div>
+        </div>
+
+        <div style="display: flex; gap: 15px; margin-top: 40px;">
+            <button onclick="history.back()" class="choice-btn" style="background: #334155; width: 50%;">
+                ⬅ Назад к QR
+            </button>
+            <a href="/" class="choice-btn" style="background: transparent; border-color: #ef4444; color: #ef4444; width: 50%;">
+                Завершить 🏠
+            </a>
+        </div>
     </div>
 
     <script>
-        // Функция автоматически запрашивает свежие данные каждые 3 секунды
+        const rowHeight = 70; // Высота карточки + отступы (в пикселях)
+
         function fetchLiveLeaderboard() {
             fetch(`/api/leaderboard/{{ quiz.id }}/`)
             .then(res => res.json())
             .then(data => {
-                document.getElementById('live-board').innerHTML = data.leaders.map((l, i) => `
-                    <tr class="${i === 0 ? 'top-1' : ''}">
-                        <td>${i + 1}</td>
-                        <td>${l.name}</td>
-                        <td>${l.score}</td>
-                    </tr>
-                `).join('');
+                const board = document.getElementById('live-board');
+
+                // Раздвигаем контейнер под количество игроков
+                board.style.height = (data.leaders.length * rowHeight) + 'px';
+
+                data.leaders.forEach((l, i) => {
+                    // Создаем безопасный ID из имени (убираем пробелы)
+                    const safeName = l.name.replace(/\s+/g, '-');
+                    let row = document.getElementById('player-' + safeName);
+
+                    // Если игрок только что зашел — создаем ему карточку
+                    if (!row) {
+                        row = document.createElement('div');
+                        row.id = 'player-' + safeName;
+                        row.className = 'leader-row';
+                        board.appendChild(row);
+                    }
+
+                    // Обновляем данные внутри карточки
+                    row.innerHTML = `
+                        <div class="col-rank">${i + 1}</div>
+                        <div class="col-name">${l.name}</div>
+                        <div class="col-score">${l.score}</div>
+                    `;
+
+                    // Делаем первого золотым (если у него есть хоть 1 балл)
+                    if (i === 0 && l.score > 0) {
+                        row.classList.add('top-1');
+                    } else {
+                        row.classList.remove('top-1');
+                    }
+
+                    // АНИМАЦИЯ: сдвигаем карточку на нужную высоту по списку
+                    row.style.transform = `translateY(${i * rowHeight}px)`;
+                });
             });
         }
+
         fetchLiveLeaderboard(); // Запуск сразу
-        setInterval(fetchLiveLeaderboard, 3000); // Повторять каждые 3 сек
+        setInterval(fetchLiveLeaderboard, 3000); // Обновление каждые 3 сек
     </script>
 </body>
 </html>

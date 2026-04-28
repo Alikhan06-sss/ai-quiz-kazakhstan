@@ -9,27 +9,28 @@
         .quiz-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
         h2 { color: #38bdf8; margin-bottom: 25px; }
 
-        /* Исправленный дизайн кнопок (без синих подсказок) */
         .choice-btn {
             display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
             border: 2px solid #334155; background: #0f172a; color: white; font-size: 16px;
             cursor: pointer; transition: 0.3s; text-align: left;
-            outline: none; /* Убирает синюю рамку на компьютере */
-            -webkit-tap-highlight-color: transparent; /* Убирает синюю подсветку при клике с телефона */
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
         }
-        .choice-btn:hover:not(:disabled) { background: #1e293b; border-color: #475569; } /* Нейтральный цвет при наведении */
+        .choice-btn:hover:not(:disabled) { background: #1e293b; border-color: #475569; }
 
         .correct { background: #059669 !important; border-color: #10b981 !important; }
         .wrong { background: #dc2626 !important; border-color: #ef4444 !important; }
+        .missed { opacity: 0.5; } /* Тусклый цвет для неправильных, если время вышло */
+
         .leaderboard-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
         .leaderboard-table td, .leaderboard-table th { padding: 10px; border-bottom: 1px solid #334155; }
-        .top-1 { color: #fbbf24; font-weight: bold; } /* Золото */
+        .top-1 { color: #fbbf24; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="quiz-card" id="quiz-box">
-    <div id="progress" style="margin-bottom: 10px; opacity: 0.6;"></div>
+    <div id="progress" style="margin-bottom: 10px; opacity: 0.8; display: flex; justify-content: space-between; font-size: 1.1rem;"></div>
     <h2 id="question-text">Загрузка...</h2>
     <div id="choices-container"></div>
 </div>
@@ -51,7 +52,10 @@
     let currentStep = 0;
     let score = 0;
 
-    // Секретное оружие: перемешиваем ответы
+    // ПЕРЕМЕННЫЕ ДЛЯ ТАЙМЕРА
+    let timeLeft = 15;
+    let timerInterval;
+
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -59,54 +63,7 @@
         }
     }
 
-    function loadQuestion() {
-        const q = questions[currentStep];
-        document.getElementById('progress').innerText = `Вопрос ${currentStep + 1} из ${questions.length}`;
-        document.getElementById('question-text').innerText = q.text;
-        const container = document.getElementById('choices-container');
-        container.innerHTML = '';
-
-        // Копируем и перемешиваем варианты перед показом
-        let currentChoices = [...q.choices];
-        shuffleArray(currentChoices);
-
-        currentChoices.forEach((choice, index) => {
-            const btn = document.createElement('button');
-            btn.className = 'choice-btn';
-            btn.innerText = choice.text;
-            // Передаем весь массив перемешанных ответов для проверки
-            btn.onclick = () => checkAnswer(btn, choice.is_correct, currentChoices);
-            container.appendChild(btn);
-        });
-    }
-
-    function checkAnswer(btn, isCorrect, currentChoices) {
-        const allBtns = document.querySelectorAll('.choice-btn');
-        allBtns.forEach(b => b.disabled = true);
-
-        if (isCorrect) {
-            btn.classList.add('correct');
-            score++;
-        } else {
-            btn.classList.add('wrong');
-            // Подсвечиваем правильный ответ среди перемешанных
-            allBtns.forEach((b, idx) => {
-                if (currentChoices[idx].is_correct) b.classList.add('correct');
-            });
-        }
-
-        // АВТО-ПЕРЕХОД через 1.5 секунды
-        setTimeout(() => {
-            currentStep++;
-            if (currentStep < questions.length) {
-                loadQuestion();
-            } else {
-                finishQuiz();
-            }
-        }, 1500);
-    }
-
-    function finishQuiz() {
+    function updateScoreLive() {
         fetch(`/save_result/`, {
             method: 'POST',
             headers: {
@@ -114,15 +71,118 @@
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
             body: `score=${score}`
-        })
-        .then(response => response.json())
+        }).catch(err => console.log(err));
+    }
+
+    // ЛОГИКА ТАЙМЕРА
+    function startTimer() {
+        timeLeft = 15;
+        updateTimerDisplay();
+        clearInterval(timerInterval); // Очищаем старый таймер
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timeOut(); // Вызываем функцию проигрыша по времени
+            }
+        }, 1000);
+    }
+
+    function updateTimerDisplay() {
+        const progressEl = document.getElementById('progress');
+        // Если осталось 5 секунд или меньше - красим в красный
+        const timeColor = timeLeft <= 5 ? '#ef4444' : '#38bdf8';
+        progressEl.innerHTML = `
+            <span>Вопрос ${currentStep + 1} из ${questions.length}</span>
+            <span style="color: ${timeColor}; font-weight: bold;">⏳ ${timeLeft} сек</span>
+        `;
+    }
+
+    function timeOut() {
+        const allBtns = document.querySelectorAll('.choice-btn');
+        const q = questions[currentStep];
+
+        // Блокируем все кнопки
+        allBtns.forEach(btn => {
+            btn.disabled = true;
+            // Ищем, какая из кнопок содержит правильный текст
+            const originalChoice = q.choices.find(c => c.text === btn.innerText);
+            if (originalChoice && originalChoice.is_correct) {
+                btn.classList.add('correct'); // Подсвечиваем правильный
+            } else {
+                btn.classList.add('missed'); // Делаем остальные тусклыми
+            }
+        });
+
+        // Ждем 2 секунды, чтобы ученик увидел правильный ответ, и идем дальше
+        setTimeout(nextStep, 2000);
+    }
+
+    function loadQuestion() {
+        const q = questions[currentStep];
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+        document.getElementById('question-text').innerText = q.text;
+
+        let currentChoices = [...q.choices];
+        shuffleArray(currentChoices);
+
+        currentChoices.forEach((choice, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'choice-btn';
+            btn.innerText = choice.text;
+            btn.onclick = () => checkAnswer(btn, choice.is_correct, currentChoices);
+            container.appendChild(btn);
+        });
+
+        startTimer(); // Запускаем таймер как только кнопки появились
+    }
+
+    function checkAnswer(btn, isCorrect, currentChoices) {
+        clearInterval(timerInterval); // Останавливаем таймер, ученик успел!
+
+        const allBtns = document.querySelectorAll('.choice-btn');
+        allBtns.forEach(b => b.disabled = true);
+
+        if (isCorrect) {
+            btn.classList.add('correct');
+            score++;
+            updateScoreLive();
+        } else {
+            btn.classList.add('wrong');
+            allBtns.forEach((b, idx) => {
+                if (currentChoices[idx].is_correct) b.classList.add('correct');
+            });
+        }
+
+        setTimeout(nextStep, 1500);
+    }
+
+    // Вынесли переход к следующему шагу в отдельную функцию
+    function nextStep() {
+        currentStep++;
+        if (currentStep < questions.length) {
+            loadQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        // Убедимся, что финальный счет точно отправился
+        updateScoreLive();
+
+        fetch(`/api/leaderboard/{{ quiz.id }}/`)
+        .then(res => res.json())
         .then(data => {
             showLeaderboard(data.leaders);
         });
     }
 
-    // ИСПРАВЛЕНО: Теперь таблица лидеров у ученика обновляется сама (Live)
-    function showLeaderboard(initialLeaders) {
+    function showLeaderboard(leaders) {
         const box = document.getElementById('quiz-box');
 
         box.innerHTML = `
@@ -137,7 +197,6 @@
             <button class="choice-btn" style="text-align:center; margin-top:20px" onclick="window.location.href='/'">Выйти</button>
         `;
 
-        // Функция обновления таблицы
         function updateTable() {
             fetch(`/api/leaderboard/{{ quiz.id }}/`)
             .then(res => res.json())
@@ -153,11 +212,11 @@
                     `).join('');
                 }
             })
-            .catch(err => console.error("Ошибка обновления:", err));
+            .catch(err => console.error(err));
         }
 
-        updateTable(); // Заполняем таблицу сразу
-        setInterval(updateTable, 3000); // Обновляем каждые 3 секунды
+        updateTable();
+        setInterval(updateTable, 3000);
     }
 
     if (questions.length > 0) loadQuestion();

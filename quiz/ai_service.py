@@ -1,6 +1,8 @@
 import json
 import requests
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 def generate_questions_from_text(text, num_questions=5):
     # Безопасно достаем ключ из переменных окружения сервера

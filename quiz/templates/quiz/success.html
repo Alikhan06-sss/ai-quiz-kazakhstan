@@ -9,7 +9,19 @@
         .card { background: #1e293b; max-width: 500px; margin: 0 auto; padding: 40px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .code-display { font-size: 48px; font-weight: bold; color: #38bdf8; margin: 20px 0; letter-spacing: 5px; }
         #qrcode { background: white; padding: 15px; display: inline-block; border-radius: 10px; margin-top: 20px; }
-        .btn { display: inline-block; margin-top: 30px; padding: 12px 25px; background: #38bdf8; color: #0f172a; text-decoration: none; border-radius: 8px; font-weight: bold; }
+        .btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: #38bdf8;
+            color: #0f172a;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .btn:hover { opacity: 0.9; transform: translateY(-2px); }
+        .teacher-btn { background: #10b981; color: white; display: block; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -21,13 +33,18 @@
 
         <div id="qrcode"></div>
 
+        <a href="/quiz/{{ quiz.id }}/results/" class="btn teacher-btn">
+            👨‍🏫 Открыть панель учителя (Live результаты)
+        </a>
+
         <br>
-        <a href="/" class="btn">Вернуться на главную</a>
+        <a href="/" class="btn" style="background: transparent; color: #38bdf8; border: 1px solid #38bdf8;">
+            Вернуться на главную
+        </a>
     </div>
 
     <script>
-        // Генерируем ссылку: берем текущий домен и добавляем путь.
-        // В будущем, когда зальем на Render, ссылка будет вести прямо на сайт.
+        // Генерируем ссылку на главную страницу, где ученики вводят код
         const joinUrl = window.location.origin + "/";
 
         new QRCode(document.getElementById("qrcode"), {

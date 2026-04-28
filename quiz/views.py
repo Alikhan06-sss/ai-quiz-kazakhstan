@@ -119,3 +119,15 @@ def save_result(request):
                 return JsonResponse({"status": "error", "message": "Player not found"}, status=404)
 
     return JsonResponse({"status": "error"}, status=400)
+
+def quiz_results(request, quiz_id):
+    """Отдельная страница для учителя: мониторинг результатов"""
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    return render(request, 'quiz/results.html', {'quiz': quiz})
+
+def get_leaderboard(request, quiz_id):
+    """API для живого (Live) обновления списка лидеров каждые 3 секунды"""
+    quiz = get_object_or_404(Quiz, id=quiz_id)
+    leaders = Player.objects.filter(quiz=quiz).order_by('-score')[:15] # Показываем топ 15
+    leaders_list = [{"name": l.name, "score": l.score} for l in leaders]
+    return JsonResponse({"status": "ok", "leaders": leaders_list})

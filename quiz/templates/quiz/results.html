@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Мониторинг: {{ quiz.title }}</title>
+    <style>
+        body { font-family: 'Inter', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; color: #fff; }
+        .quiz-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
+        .leaderboard-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
+        .leaderboard-table td, .leaderboard-table th { padding: 10px; border-bottom: 1px solid #334155; }
+        .top-1 { color: #fbbf24; font-weight: bold; }
+        .choice-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; cursor: pointer; text-decoration: none;}
+        .choice-btn:hover { border-color: #38bdf8; }
+        .pulse { display: inline-block; width: 10px; height: 10px; background: #10b981; border-radius: 50%; margin-right: 10px; animation: blink 1.5s infinite; }
+        @keyframes blink { 0% {opacity: 1;} 50% {opacity: 0.3;} 100% {opacity: 1;} }
+    </style>
+</head>
+<body>
+    <div class="quiz-card">
+        <h2><span class="pulse"></span> LIVE: {{ quiz.title }}</h2>
+        <p style="font-size: 1.2rem; color: #38bdf8;">Код для входа: <b>{{ quiz.join_code }}</b></p>
+
+        <table class="leaderboard-table">
+            <thead><tr><th>#</th><th>Ученик</th><th>Баллы</th></tr></thead>
+            <tbody id="live-board">
+                </tbody>
+        </table>
+
+        <a href="/" class="choice-btn" style="text-align:center; margin-top:30px">На главную</a>
+    </div>
+
+    <script>
+        // Функция автоматически запрашивает свежие данные каждые 3 секунды
+        function fetchLiveLeaderboard() {
+            fetch(`/api/leaderboard/{{ quiz.id }}/`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('live-board').innerHTML = data.leaders.map((l, i) => `
+                    <tr class="${i === 0 ? 'top-1' : ''}">
+                        <td>${i + 1}</td>
+                        <td>${l.name}</td>
+                        <td>${l.score}</td>
+                    </tr>
+                `).join('');
+            });
+        }
+        fetchLiveLeaderboard(); // Запуск сразу
+        setInterval(fetchLiveLeaderboard, 3000); // Повторять каждые 3 сек
+    </script>
+</body>
+</html>

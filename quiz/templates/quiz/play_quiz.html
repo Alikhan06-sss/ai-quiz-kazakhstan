@@ -8,8 +8,17 @@
         body { font-family: 'Inter', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #0f172a; color: #fff; }
         .quiz-card { background: #1e293b; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 600px; text-align: center; }
         h2 { color: #38bdf8; margin-bottom: 25px; }
-        .choice-btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px; border: 2px solid #334155; background: #0f172a; color: white; font-size: 16px; cursor: pointer; transition: 0.3s; text-align: left; }
-        .choice-btn:hover:not(:disabled) { border-color: #38bdf8; }
+
+        /* Исправленный дизайн кнопок (без синих подсказок) */
+        .choice-btn {
+            display: block; width: 100%; padding: 15px; margin: 10px 0; border-radius: 12px;
+            border: 2px solid #334155; background: #0f172a; color: white; font-size: 16px;
+            cursor: pointer; transition: 0.3s; text-align: left;
+            outline: none; /* Убирает синюю рамку на компьютере */
+            -webkit-tap-highlight-color: transparent; /* Убирает синюю подсветку при клике с телефона */
+        }
+        .choice-btn:hover:not(:disabled) { background: #1e293b; border-color: #475569; } /* Нейтральный цвет при наведении */
+
         .correct { background: #059669 !important; border-color: #10b981 !important; }
         .wrong { background: #dc2626 !important; border-color: #ef4444 !important; }
         .leaderboard-table { width: 100%; margin-top: 20px; border-collapse: collapse; }
@@ -42,6 +51,14 @@
     let currentStep = 0;
     let score = 0;
 
+    // Секретное оружие: перемешиваем ответы
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
     function loadQuestion() {
         const q = questions[currentStep];
         document.getElementById('progress').innerText = `Вопрос ${currentStep + 1} из ${questions.length}`;
@@ -49,16 +66,21 @@
         const container = document.getElementById('choices-container');
         container.innerHTML = '';
 
-        q.choices.forEach((choice, index) => {
+        // Копируем и перемешиваем варианты перед показом
+        let currentChoices = [...q.choices];
+        shuffleArray(currentChoices);
+
+        currentChoices.forEach((choice, index) => {
             const btn = document.createElement('button');
             btn.className = 'choice-btn';
             btn.innerText = choice.text;
-            btn.onclick = () => checkAnswer(btn, choice.is_correct);
+            // Передаем весь массив перемешанных ответов для проверки
+            btn.onclick = () => checkAnswer(btn, choice.is_correct, currentChoices);
             container.appendChild(btn);
         });
     }
 
-    function checkAnswer(btn, isCorrect) {
+    function checkAnswer(btn, isCorrect, currentChoices) {
         const allBtns = document.querySelectorAll('.choice-btn');
         allBtns.forEach(b => b.disabled = true);
 
@@ -67,8 +89,9 @@
             score++;
         } else {
             btn.classList.add('wrong');
+            // Подсвечиваем правильный ответ среди перемешанных
             allBtns.forEach((b, idx) => {
-                if (questions[currentStep].choices[idx].is_correct) b.classList.add('correct');
+                if (currentChoices[idx].is_correct) b.classList.add('correct');
             });
         }
 
@@ -84,7 +107,6 @@
     }
 
     function finishQuiz() {
-        // Отправляем результат на сервер через специальный URL
         fetch(`/save_result/`, {
             method: 'POST',
             headers: {

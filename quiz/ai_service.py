@@ -1,11 +1,15 @@
 import json
 import requests
-
+import os
 
 def generate_questions_from_text(text, num_questions=5):
-    API_KEY = "AIzaSyAmpEk4_bqtg44Y_OyJYgIPE-tDe-3l9CI"
+    # Безопасно достаем ключ из переменных окружения сервера
+    API_KEY = os.environ.get("GEMINI_API_KEY")
 
-    # Бинго! Правильный домен + твоя актуальная модель 2.5-flash-lite
+    if not API_KEY:
+        print("Ошибка: API ключ не найден в переменных окружения!")
+        return None
+
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key={API_KEY}"
 
     prompt = f"""
